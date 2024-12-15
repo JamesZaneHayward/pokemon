@@ -1,0 +1,12 @@
+<network-security-config>
+    <base-config>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">x-ce-mobile-api-v1.ir-e1.cloudhub.io</domain>
+    </domain-config>
+</network-security-config>

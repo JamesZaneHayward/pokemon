@@ -28,3 +28,8 @@ UI tests are setup to use JUnit4 and compose testing features. An example for th
 - Allowing deeplinking to specific pokémon in the pokédex, particularly from the Who's that Pokémon? game screen.
 - Searching/filtering of pokédex entries
 - Persisting game win/loss record
+
+# Screenshots
+![Who's that pokemon? game screen](/assets/ss1.PNG)
+![Who's that pokemon? post guess](/assets/ss2.PNG)
+![Pokedex screen](/assets/ss3.PNG)

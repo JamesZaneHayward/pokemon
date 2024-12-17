@@ -12,7 +12,7 @@ class GetPokedexUseCase @Inject constructor(
     suspend fun execute(pokemonCount: Int = 151): PokemonList {
         return withContext(Dispatchers.IO) {
             // sticking to first gen for now
-            pokeApiService.getPokemon(pokemonCount).body() ?: throw throw IllegalStateException("Missing Body")
+            pokeApiService.getPokemon(pokemonCount).body() ?: throw IllegalStateException("Missing Body")
         }
     }
 }

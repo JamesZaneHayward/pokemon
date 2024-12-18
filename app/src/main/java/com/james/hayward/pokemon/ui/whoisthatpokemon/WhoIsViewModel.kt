@@ -5,7 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.james.hayward.pokemon.data.model.Pokemon
 import com.james.hayward.pokemon.data.model.getFullArtUrl
 import com.james.hayward.pokemon.domain.GetWhoIsThatPokemonInfoUseCase
+import com.james.hayward.pokemon.ui.whoisthatpokemon.WhoIsViewModel.GameState.GameData
+import com.james.hayward.pokemon.ui.whoisthatpokemon.WhoIsViewModel.GameState.Loading
+import com.james.hayward.pokemon.ui.whoisthatpokemon.WhoIsViewModel.GameState.NoGameData
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,7 +34,9 @@ class WhoIsViewModel @Inject constructor(
     }
 
     fun onPokemonSelected(selectedOption: String) {
-        val guessedCorrectly = selectedOption == _viewState.value.correctPokemon?.name
+        val guessedCorrectly =
+            selectedOption == (_viewState.value.gameState as GameData).correctPokemon.name
+
         _viewState.update {
             it.copy(
                 hasGuessed = true,
@@ -49,30 +55,48 @@ class WhoIsViewModel @Inject constructor(
     }
 
     private fun generateWhoIsGame() {
-        viewModelScope.launch {
+        viewModelScope.launch(
+            CoroutineExceptionHandler { _, throwable ->
+                _viewState.update {
+                    it.copy(
+                        gameState = NoGameData,
+                        hasGuessed = false,
+                        showHint = false,
+                    )
+                }
+            }
+        ) {
             val gameInfo = getWhoIsThatPokemonInfoUseCase.execute()
 
             _viewState.update {
                 it.copy(
-                    currentPokemonImageUrl = gameInfo.first.getFullArtUrl(),
-                    correctPokemon = gameInfo.first,
-                    pokemonChoices = gameInfo.second,
+                    gameState = GameData(
+                        currentPokemonImageUrl = gameInfo.first.getFullArtUrl(),
+                        correctPokemon = gameInfo.first,
+                        pokemonChoices = gameInfo.second,
+                    ),
                     hasGuessed = false,
                     showHint = false,
-                    correct = it.correct,
-                    incorrect = it.incorrect,
                 )
             }
         }
     }
 
     data class WhoIsGameViewState(
-        val currentPokemonImageUrl: String? = null,
-        val correctPokemon: Pokemon? = null,
-        val pokemonChoices: List<String>? = null,
+        val gameState: GameState = Loading,
         val hasGuessed: Boolean = false,
         val showHint: Boolean = false,
         val correct: Int = 0,
         val incorrect: Int = 0,
     )
+
+    sealed class GameState() {
+        object Loading : GameState()
+        object NoGameData : GameState()
+        data class GameData(
+            val currentPokemonImageUrl: String,
+            val correctPokemon: Pokemon,
+            val pokemonChoices: List<String>,
+        ) : GameState()
+    }
 }

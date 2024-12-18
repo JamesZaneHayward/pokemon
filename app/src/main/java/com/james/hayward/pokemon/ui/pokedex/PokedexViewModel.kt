@@ -2,10 +2,12 @@ package com.james.hayward.pokemon.ui.pokedex
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.james.hayward.pokemon.data.common.ApiResponse
 import com.james.hayward.pokemon.data.model.Pokemon
 import com.james.hayward.pokemon.data.model.PokemonList
 import com.james.hayward.pokemon.domain.GetPokedexUseCase
 import com.james.hayward.pokemon.domain.GetPokemonDetailsUseCase
+import com.james.hayward.pokemon.ui.pokedex.PokedexViewModel.PokedexListState.PokedexList
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,29 +31,40 @@ class PokedexViewModel @Inject constructor(
 
     fun getPokemonDetails(identifier: String) {
         viewModelScope.launch {
-            _viewState.update {
-                _viewState.value.copy(
-                    selectedPokemon = getPokemonDetailsUseCase.execute(identifier)
-                )
+            val pokemon = getPokemonDetailsUseCase.execute(identifier)
+            if (pokemon is ApiResponse.Success) {
+                _viewState.update {
+                    _viewState.value.copy(
+                        selectedPokemon = pokemon.response
+                    )
+                }
             }
         }
     }
 
-    private fun showPokedexList() {
+    fun showPokedexList() {
         viewModelScope.launch {
             _viewState.update {
                 _viewState.value.copy(
-                    pokedexList = getPokedexUseCase.execute()
+                    pokedexList = when (val result = getPokedexUseCase.execute()) {
+                        is ApiResponse.Success -> {
+                            PokedexList(result.response)
+                        }
+                        is ApiResponse.Error,
+                        is ApiResponse.Exception -> PokedexListState.NoListAvailable
+                    }
                 )
             }
         }
     }
 
     data class PokedexViewState(
-        val pokedexList: PokemonList = PokemonList(
-            count = 0,
-            next = "",
-            results = emptyList(),
+        val pokedexList: PokedexListState = PokedexList(
+            PokemonList(
+                count = 0,
+                next = "",
+                results = emptyList(),
+            ),
         ),
         val selectedPokemon: Pokemon = Pokemon(
             id = 1,
@@ -78,4 +91,9 @@ class PokedexViewModel @Inject constructor(
             ),
         ),
     )
+
+    sealed class PokedexListState {
+        data class PokedexList(val pokemonList: PokemonList) : PokedexListState()
+        object NoListAvailable : PokedexListState()
+    }
 }

@@ -12,10 +12,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,7 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.james.hayward.pokemon.ui.theme.Typography
-import com.james.hayward.pokemon.ui.whoisthatpokemon.WhoIsViewModel.WhoIsGameViewState
+import com.james.hayward.pokemon.ui.whoisthatpokemon.WhoIsViewModel.GameState.GameData
+import com.james.hayward.pokemon.ui.whoisthatpokemon.WhoIsViewModel.GameState.NoGameData
 import java.util.Locale
 
 @Composable
@@ -35,13 +36,48 @@ fun WhoIsGameRoute(
     innerPadding: PaddingValues,
 ) {
     val whoIsGameViewState by viewModel.viewState.collectAsStateWithLifecycle()
-    WhoIsGame(
-        whoIsGameViewState = whoIsGameViewState,
-        onPokemonSelected = { viewModel.onPokemonSelected(it) },
-        onRevealHintClicked = { viewModel.revealHint() },
-        onRefreshGameClicked = { viewModel.onRefreshGameClicked() },
-        innerPadding = innerPadding,
-    )
+    when (whoIsGameViewState.gameState) {
+        is GameData -> {
+            WhoIsGame(
+                hasGuessed = whoIsGameViewState.hasGuessed,
+                showHint = whoIsGameViewState.showHint,
+                correct = whoIsGameViewState.correct,
+                incorrect = whoIsGameViewState.incorrect,
+                gameData = whoIsGameViewState.gameState as GameData,
+                onPokemonSelected = { viewModel.onPokemonSelected(it) },
+                onRevealHintClicked = { viewModel.revealHint() },
+                onRefreshGameClicked = { viewModel.onRefreshGameClicked() },
+                innerPadding = innerPadding,
+            )
+        }
+
+        WhoIsViewModel.GameState.Loading -> {
+            Column(
+                modifier = Modifier.padding(innerPadding)
+                    .padding(top = 40.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.width(64.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+            }
+        }
+
+        NoGameData -> {
+            Column(
+                modifier = Modifier.padding(innerPadding)
+                    .padding(top = 40.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(text = "No game data available, please try fetching data again")
+                Button(onClick = { viewModel.onRefreshGameClicked() }) {
+                    Text(text = "Retry")
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -77,7 +113,11 @@ fun OptionButton(
 
 @Composable
 fun WhoIsGame(
-    whoIsGameViewState: WhoIsGameViewState,
+    gameData: GameData,
+    hasGuessed: Boolean,
+    showHint: Boolean,
+    correct: Int,
+    incorrect: Int,
     onPokemonSelected: (String) -> Unit,
     onRevealHintClicked: () -> Unit,
     onRefreshGameClicked: () -> Unit,
@@ -91,29 +131,29 @@ fun WhoIsGame(
                 .align(Alignment.CenterHorizontally)
                 .padding(horizontal = 8.dp)
                 .size(384.dp),
-            model = whoIsGameViewState.currentPokemonImageUrl,
+            model = gameData.currentPokemonImageUrl,
             contentDescription = "Pokémon silhouette",
-            colorFilter = if (whoIsGameViewState.hasGuessed.not()) ColorFilter.tint(Color.Black) else null
+            colorFilter = if (hasGuessed.not()) ColorFilter.tint(Color.Black) else null
         )
         // first line of pokemon name buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
         ) {
-            whoIsGameViewState.pokemonChoices?.get(0)?.let {
+            gameData.pokemonChoices[0].let {
                 OptionButton(
                     onClickAction = { onPokemonSelected(it) },
                     pokemonName = it,
-                    isCorrect = whoIsGameViewState.correctPokemon?.name == it,
-                    hasGuessed = whoIsGameViewState.hasGuessed,
+                    isCorrect = gameData.correctPokemon.name == it,
+                    hasGuessed = hasGuessed,
                 )
             }
-            whoIsGameViewState.pokemonChoices?.get(1)?.let {
+            gameData.pokemonChoices[1].let {
                 OptionButton(
                     onClickAction = { onPokemonSelected(it) },
                     pokemonName = it,
-                    isCorrect = whoIsGameViewState.correctPokemon?.name == it,
-                    hasGuessed = whoIsGameViewState.hasGuessed,
+                    isCorrect = gameData.correctPokemon.name == it,
+                    hasGuessed = hasGuessed,
                 )
             }
         }
@@ -122,25 +162,25 @@ fun WhoIsGame(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center,
         ) {
-            whoIsGameViewState.pokemonChoices?.get(2)?.let {
+            gameData.pokemonChoices[2].let {
                 OptionButton(
                     onClickAction = { onPokemonSelected(it) },
                     pokemonName = it,
-                    isCorrect = whoIsGameViewState.correctPokemon?.name == it,
-                    hasGuessed = whoIsGameViewState.hasGuessed,
+                    isCorrect = gameData.correctPokemon.name == it,
+                    hasGuessed = hasGuessed,
                 )
             }
-            whoIsGameViewState.pokemonChoices?.get(3)?.let {
+            gameData.pokemonChoices[3].let {
                 OptionButton(
                     onClickAction = { onPokemonSelected(it) },
                     pokemonName = it,
-                    isCorrect = whoIsGameViewState.correctPokemon?.name == it,
-                    hasGuessed = whoIsGameViewState.hasGuessed,
+                    isCorrect = gameData.correctPokemon.name == it,
+                    hasGuessed = hasGuessed,
                 )
             }
         }
-        if (whoIsGameViewState.showHint) {
-            whoIsGameViewState.correctPokemon?.types?.first()?.type?.name?.let {
+        if (showHint) {
+            gameData.correctPokemon.types.first().type.name.let {
                 Text(
                     modifier = Modifier
                         .height(72.dp)
@@ -180,11 +220,11 @@ fun WhoIsGame(
             horizontalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "Correct guesses: ${whoIsGameViewState.correct}",
+                text = "Correct guesses: $correct",
             )
             Spacer(modifier = Modifier.width(40.dp))
             Text(
-                text = "Incorrect guesses: ${whoIsGameViewState.incorrect}",
+                text = "Incorrect guesses: $incorrect",
             )
         }
         Spacer(modifier = Modifier.height(24.dp))

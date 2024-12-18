@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,6 +35,7 @@ fun PokedexRoute(
     Pokedex(
         pokedexViewState = pokedexViewState,
         selectPokemon = { viewModel.getPokemonDetails(it) },
+        retryButtonClicked = { viewModel.showPokedexList() },
         innerPadding = innerPadding,
     )
 }
@@ -42,6 +44,7 @@ fun PokedexRoute(
 fun Pokedex(
     pokedexViewState: PokedexViewState,
     selectPokemon: (String) -> Unit,
+    retryButtonClicked: () -> Unit,
     innerPadding: PaddingValues,
 ) {
     Column(
@@ -51,9 +54,19 @@ fun Pokedex(
         HorizontalDivider(
             color = Color.Black,
         )
-        LazyColumn {
-            items(pokedexViewState.pokedexList.results) {
-                PokedexItem(it.name) { name -> selectPokemon(name) }
+        when (pokedexViewState.pokedexList) {
+            is PokedexViewModel.PokedexListState.NoListAvailable -> {
+                Text(text = "Oops, something went wrong, there's no list available, please try fetching data again")
+                Button(onClick = retryButtonClicked) {
+                    Text("Retry")
+                }
+            }
+            is PokedexViewModel.PokedexListState.PokedexList -> {
+                LazyColumn {
+                    items(pokedexViewState.pokedexList.pokemonList.results) {
+                        PokedexItem(it.name) { name -> selectPokemon(name) }
+                    }
+                }
             }
         }
     }

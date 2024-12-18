@@ -15,7 +15,7 @@ UI tests are setup to use JUnit4 and compose testing features. An example for th
 
 # Next steps
 ### Major concerns
-- Error handling needs to be added - app is currently only focused on "happy paths" and requires relevant error handling and supporting tests
+- Error handling for who's that pokémon game should be cleaned up
 - Database to be added - app is hugely inefficient making the same api calls repeatedly when we largely don't expect the bulk of the data to change. Adding a database and pulling from there will cut down on the network calls, allow offline functionality, and decrease the startup time of the app on subsequent openings/game creations. 
 
 ### Other concerns
